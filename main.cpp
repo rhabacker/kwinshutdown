@@ -18,25 +18,52 @@
    Boston, MA 02110-1301, USA.
 */
 
+#include "shutdownwatcher.h"
 
 #include <kdebug.h>
 #include <KAboutData>
-#include <Kapplication>
+#include <KApplication>
 #include <KMessageBox>
 #include <KCmdLineArgs>
 #include <KGlobal>
 #include <KProcess>
 #include <KDebug>
 
+static bool dryrun = false;
+
+bool requestForShutDownApps()
+{
+    int res = KMessageBox::warningContinueCancel(0,
+    ki18n("Should I really shutdown all applications and processes of your recent installation ?"
+    "\n\nPlease make sure you have saved all documents.").toString(),
+    ki18n("Shutdown KDE").toString());
+    if (res == KMessageBox::Cancel)
+        return false;
+    return true;
+}
+
+int shutDownApps()
+{
+    QStringList cmd;
+    cmd  << "kdeinit4" << "--shutdown";
+    kDebug() << "running" << cmd;
+    if (!dryrun)
+        KProcess::startDetached(cmd);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     KAboutData about("kwinshutdown", 0, ki18n("kwinshutdown"), "1.0",
                      ki18n("A helper tool to shutdown a running installation"),
                      KAboutData::License_GPL,
-                     ki18n("(C) 2011 Ralf Habacker"));
+                     ki18n("(C) 2011-2016 Ralf Habacker"));
     KCmdLineArgs::init( argc, argv, &about);
 
     KCmdLineOptions options;
+    options.add("timeout <seconds>", ki18n("Timeout to shut down KDE background processes after a watched application has been exited, defaulting to 60 seconds"), "60");
+    options.add("watch <appname>", ki18n("Enable shut down watching for <appname"), "");
+    options.add("dry-run", ki18n("Test mode, do not really shut down"), "");
     KCmdLineArgs::addCmdLineOptions( options ); // Add my own options.
 
     KComponentData a(&about);
@@ -46,18 +73,20 @@ int main(int argc, char **argv)
 
     KApplication app(true);
 
-    int res = KMessageBox::warningContinueCancel(0,
-        ki18n("Should I really shutdown all applications and processes of your recent installation ?"
-        "\n\nPlease make sure you have saved all documents.").toString(),
-        ki18n("Shutdown KDE").toString());
-    if (res == KMessageBox::Cancel)
-        return 2;
+    dryrun = args->isSet("dry-run");
 
-    QStringList cmd;
-    cmd  << "kdeinit4" << "--shutdown";
-    kDebug() << "running" << cmd;
-    KProcess::startDetached(cmd);
-    return 0;
+    if (args->isSet("watch"))
+    {
+        int timeout = args->getOption("timeout").toInt();
+        ShutdownWatcher watcher(args->getOption("watch"), timeout);
+        return app.exec();
+    }
+    else
+    {
+        if (requestForShutDownApps())
+            return shutDownApps();
+        return 1;
+    }
 }
 
 // vim: ts=4 sw=4 et
