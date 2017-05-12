@@ -29,7 +29,14 @@
 #include <KProcess>
 #include <KDebug>
 
+#include <windows.h>
+
 static bool dryrun = false;
+
+void hideConsole()
+{
+    ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+}
 
 bool requestForShutDownApps()
 {
@@ -57,19 +64,23 @@ int main(int argc, char **argv)
     KAboutData about("kwinshutdown", 0, ki18n("kwinshutdown"), "1.0",
                      ki18n("A helper tool to shutdown a running installation"),
                      KAboutData::License_GPL,
-                     ki18n("(C) 2011-2016 Ralf Habacker"));
+                     ki18n("(C) 2011-2017 Ralf Habacker"));
     KCmdLineArgs::init( argc, argv, &about);
 
     KCmdLineOptions options;
     options.add("timeout <seconds>", ki18n("Timeout to shut down KDE background processes after a watched application has been exited, defaulting to 60 seconds"), "60");
     options.add("watch <appname>", ki18n("Enable shut down watching for <appname"), "");
     options.add("dry-run", ki18n("Test mode, do not really shut down"), "");
+    options.add("hide-console", ki18n("Hide console window"), "");
     KCmdLineArgs::addCmdLineOptions( options ); // Add my own options.
 
     KComponentData a(&about);
 
     // Get application specific arguments
     KCmdLineArgs *args = KCmdLineArgs::parsedArgs();
+
+    if (args->isSet("hide-console"))
+        hideConsole();
 
     KApplication app(true);
 
