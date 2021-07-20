@@ -1,6 +1,6 @@
 /* This file is part of the KDE Project
 
-   Copyright (C) 2011 Ralf Habacker <ralf.habacker@freenet.de>
+   Copyright (C) 2011-2021 Ralf Habacker <ralf.habacker@freenet.de>
    All rights reserved.
 
    This library is free software; you can redistribute it and/or
@@ -20,14 +20,14 @@
 
 #include "shutdownwatcher.h"
 
-#include <kdebug.h>
 #include <KAboutData>
-#include <KApplication>
 #include <KMessageBox>
-#include <KCmdLineArgs>
-#include <KGlobal>
+#include <KLocalizedString>
 #include <KProcess>
-#include <KDebug>
+
+#include <QApplication>
+#include <QCommandLineParser>
+#include <QtDebug>
 
 #include <windows.h>
 
@@ -41,9 +41,9 @@ void hideConsole()
 bool requestForShutDownApps()
 {
     int res = KMessageBox::warningContinueCancel(0,
-    ki18n("Should I really shutdown all applications and processes of your recent installation ?"
-    "\n\nPlease make sure you have saved all documents.").toString(),
-    ki18n("Shutdown KDE").toString());
+    i18n("Should I really shutdown all applications and processes of your recent installation ?"
+    "\n\nPlease make sure you have saved all documents."),
+    i18n("Shutdown KDE"));
     if (res == KMessageBox::Cancel)
         return false;
     return true;
@@ -52,8 +52,8 @@ bool requestForShutDownApps()
 int shutDownApps()
 {
     QStringList cmd;
-    cmd  << "kdeinit4" << "--shutdown";
-    kDebug() << "running" << cmd;
+    cmd  << "kdeinit5" << "--shutdown";
+    qCDebug(KWINSHUTDOWN) << "running" << cmd;
     if (!dryrun)
         KProcess::startDetached(cmd);
     return 0;
@@ -61,35 +61,55 @@ int shutDownApps()
 
 int main(int argc, char **argv)
 {
-    KAboutData about("kwinshutdown", 0, ki18n("kwinshutdown"), "1.0",
-                     ki18n("A helper tool to shutdown a running installation"),
-                     KAboutData::License_GPL,
-                     ki18n("(C) 2011-2017 Ralf Habacker"));
-    KCmdLineArgs::init( argc, argv, &about);
+    QApplication app(argc, argv);
+    KLocalizedString::setApplicationDomain("kwinshutdown");
 
-    KCmdLineOptions options;
-    options.add("timeout <seconds>", ki18n("Timeout to shut down KDE background processes after a watched application has been exited, defaulting to 60 seconds"), "60");
-    options.add("watch <appname>", ki18n("Enable shut down watching for <appname"), "");
-    options.add("dry-run", ki18n("Test mode, do not really shut down"), "");
-    options.add("hide-console", ki18n("Hide console window"), "");
-    KCmdLineArgs::addCmdLineOptions( options ); // Add my own options.
+    KAboutData aboutData(
+                QStringLiteral("kwinshutdown"),
+                i18n("KWinShutDown"),
+                QStringLiteral("1.0"),
+                i18n("A helper tool to shutdown a running installation"),
+                KAboutLicense::GPL,
+                i18n("(C) 2011-2021 Ralf Habacker")
+    );
 
-    KComponentData a(&about);
+    aboutData.addAuthor(
+                i18n("Ralf Habacker"),
+                i18n("Author"),
+                QStringLiteral("ralf.habacker@freenet.de")
+    );
 
-    // Get application specific arguments
-    KCmdLineArgs *args = KCmdLineArgs::parsedArgs();
+    QCommandLineParser args;
+    aboutData.setupCommandLine(&args);
 
-    if (args->isSet("hide-console"))
+    QCommandLineOption timeoutOption("timeout",
+        i18n("Timeout to shut down KDE background processes after a watched application has been exited, defaulting to 60 seconds"),
+        i18n("seconds")
+    );
+    timeoutOption.setDefaultValue(QStringLiteral("60"));
+    args.addOption(timeoutOption);
+
+    QCommandLineOption watchOption("watch", i18n("Enable shut down watching for <appname"), i18n("appname"));
+    args.addOption(watchOption);
+
+    QCommandLineOption dryRunOption("dry-run", i18n("Test mode, do not really shut down"));
+    args.addOption(dryRunOption);
+
+    QCommandLineOption hideConsoleOption("hide-console", i18n("Hide console window"));
+    args.addOption(hideConsoleOption);
+
+    args.process(app);
+    aboutData.processCommandLine(&args);
+
+    if (args.isSet(hideConsoleOption))
         hideConsole();
 
-    KApplication app(true);
+    dryrun = args.isSet(dryRunOption);
 
-    dryrun = args->isSet("dry-run");
-
-    if (args->isSet("watch"))
+    if (args.isSet(watchOption))
     {
-        int timeout = args->getOption("timeout").toInt();
-        ShutdownWatcher watcher(args->getOption("watch"), timeout);
+        int timeout = args.value(timeoutOption).toInt();
+        ShutdownWatcher watcher(args.value(watchOption), timeout);
         return app.exec();
     }
     else

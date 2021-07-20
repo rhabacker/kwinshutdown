@@ -21,14 +21,13 @@
 #include "shutdownwatcher.h"
 #include "main.h"
 
-#include <KDebug>
-
 #include <QApplication>
 #include <QStringList>
 #include <QTimer>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
-#include <QtDebug>
+
+Q_LOGGING_CATEGORY(KWINSHUTDOWN, "kwinshutdown")
 
 ShutdownWatcher::ShutdownWatcher(const QString &appName, int timeout, QObject *parent)
   : QObject(parent),
@@ -42,7 +41,7 @@ ShutdownWatcher::ShutdownWatcher(const QString &appName, int timeout, QObject *p
 void ShutdownWatcher::startWatch()
 {
     int timeout = m_timeout*1000/2;
-    kDebug() << "starting timer with timeout" << timeout << "ms";
+    qCDebug(KWINSHUTDOWN) << "starting timer with timeout" << timeout << "ms";
     QTimer::singleShot(timeout, this, SLOT(slotCheckShutDown()));
 }
 
@@ -55,15 +54,15 @@ QStringList ShutdownWatcher::allServiceNamesFromDBus() const
 
 void ShutdownWatcher::slotCheckShutDown()
 {
-    kDebug() << "timeout: checking at level" << m_checkLevel;
+    qCDebug(KWINSHUTDOWN) << "timeout: checking at level" << m_checkLevel;
     foreach(const QString &app, allServiceNamesFromDBus())
     {
-        kDebug() << "checking" << app;
+        qCDebug(KWINSHUTDOWN) << "checking" << app;
         if (m_checkLevel == 0)
         {
             if (app.contains(m_appName))
             {
-                kDebug() << app << "found";
+                qCDebug(KWINSHUTDOWN) << app << "found";
                 startWatch();
                 return;
             }
@@ -72,7 +71,7 @@ void ShutdownWatcher::slotCheckShutDown()
         {
             if (app.contains(m_appName))
             {
-                kDebug() << app << "found at level 1";
+                qCDebug(KWINSHUTDOWN) << app << "found at level 1";
                 m_checkLevel = 0;
                 startWatch();
                 return;
@@ -82,12 +81,12 @@ void ShutdownWatcher::slotCheckShutDown()
     if (m_checkLevel == 0)
     {
         m_checkLevel = 1;
-        kDebug() << m_appName << "not found, increasing check level to" << m_checkLevel;
+        qCDebug(KWINSHUTDOWN) << m_appName << "not found, increasing check level to" << m_checkLevel;
         startWatch();
     }
     else if (m_checkLevel == 1)
     {
-        kDebug() << m_appName << "not running after two iterations, shutting down KDE";
+        qCDebug(KWINSHUTDOWN) << m_appName << "not running after two iterations, shutting down KDE";
         shutDownApps();
         qApp->quit();
     }

@@ -21,7 +21,10 @@
 #ifndef SHUTDOWNWATCHER_H
 #define SHUTDOWNWATCHER_H
 
+#include <QLoggingCategory>
 #include <QObject>
+
+Q_DECLARE_LOGGING_CATEGORY(KWINSHUTDOWN)
 
 class ShutdownWatcher : public QObject
 {

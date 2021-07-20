@@ -1,30 +1,34 @@
 project(kshutdown)
 
-if(CMAKE_STANDALONE)
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-find_package(Qt4 4.4.3 REQUIRED QtCore QtGui QtXml QtTest)
+set(QT_MIN_VERSION "5.9.0")
+set(KF5_MIN_VERSION "5.55.0")
 
-# search packages used by KDE
-find_package(KDE4 REQUIRED)
-include(KDE4Defaults)
-include(MacroLibrary)
+find_package(ECM 1.0.0 REQUIRED NO_MODULE)
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
-# The FindKDE4.cmake module sets _KDE4_PLATFORM_DEFINITIONS with
-# definitions like _GNU_SOURCE that are needed on each platform.
-set(CMAKE_REQUIRED_DEFINITIONS ${_KDE4_PLATFORM_DEFINITIONS} -DQT_STRICT_ITERATORS)
+include(KDEInstallDirs)
+include(KDECMakeSettings)
+include(KDECompilerSettings NO_POLICY_SCOPE)
+include(FeatureSummary)
+include(ECMAddAppIcon)
 
-add_definitions (
-    ${KDE4_DEFINITIONS}
+# Find Qt modules
+find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
+    Core    # QCommandLineParser, QStringLiteral
+    DBus
+    Widgets # QApplication
 )
 
-include_directories(
-    ${KDE4_INCLUDES}
+# Find KDE modules
+find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
+    CoreAddons      # KAboutData
+    I18n            # KLocalizedString
+    WidgetsAddons   # KMessageBox
 )
-endif()
+
+feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
 # use kded debug category for now
 add_definitions(-DKDE_DEFAULT_DEBUG_AREA=7020)
@@ -33,13 +37,20 @@ set (SOURCES
     main.cpp
     shutdownwatcher.cpp
 )
-kde4_add_app_icon(SOURCES "${KDE4_INSTALL_DIR}/share/icons/oxygen/*/actions/application-exit.png")
 
-kde4_add_executable(kwinshutdown ${SOURCES})
+#ecm_add_app_icon(SOURCES ICONS "${KDE_INSTALL_DIR}/share/icons/oxygen/*/*/actions/application-exit.png")
 
-target_link_libraries(kwinshutdown ${KDE4_KDECORE_LIBS} ${KDE4_KDEUI_LIBS})
+add_executable(kwinshutdown ${SOURCES})
 
-########### install ###############
+set_target_properties(kwinshutdown PROPERTIES OUTPUT_NAME kwinshutdown5)
 
-install( TARGETS kwinshutdown DESTINATION  ${BIN_INSTALL_DIR} )
-install( PROGRAMS kwinshutdown.desktop DESTINATION ${XDG_APPS_INSTALL_DIR} )
+target_link_libraries(kwinshutdown
+    Qt5::DBus
+    Qt5::Widgets
+    KF5::CoreAddons
+    KF5::I18n
+    KF5::WidgetsAddons
+)
+
+install(TARGETS kwinshutdown ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(PROGRAMS kwinshutdown.desktop DESTINATION ${XDG_APPS_INSTALL_DIR})
