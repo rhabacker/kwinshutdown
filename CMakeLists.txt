@@ -1,8 +1,7 @@
 project(kshutdown)
 
-if(CMAKE_STANDALONE)
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -24,7 +23,6 @@ add_definitions (
 include_directories(
     ${KDE4_INCLUDES}
 )
-endif()
 
 # use kded debug category for now
 add_definitions(-DKDE_DEFAULT_DEBUG_AREA=7020)
