@@ -32,6 +32,7 @@
 #include <windows.h>
 
 static bool dryrun = false;
+static bool kde5 = false;
 
 void hideConsole()
 {
@@ -52,7 +53,7 @@ bool requestForShutDownApps()
 int shutDownApps()
 {
     QStringList cmd;
-    cmd  << "kdeinit4" << "--shutdown";
+    cmd  << (kde5 ? "kdeinit5" : "kdeinit4") << "--shutdown";
     kDebug() << "running" << cmd;
     if (!dryrun)
         KProcess::startDetached(cmd);
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
     KAboutData about("kwinshutdown", 0, ki18n("kwinshutdown"), "1.0",
                      ki18n("A helper tool to shutdown a running installation"),
                      KAboutData::License_GPL,
-                     ki18n("(C) 2011-2017 Ralf Habacker"));
+                     ki18n("(C) 2011-2021 Ralf Habacker"));
     KCmdLineArgs::init( argc, argv, &about);
 
     KCmdLineOptions options;
@@ -72,6 +73,7 @@ int main(int argc, char **argv)
     options.add("watch <appname>", ki18n("Enable shut down watching for <appname"), "");
     options.add("dry-run", ki18n("Test mode, do not really shut down"), "");
     options.add("hide-console", ki18n("Hide console window"), "");
+    options.add("5", ki18n("Use kdeinit5"), "");
     KCmdLineArgs::addCmdLineOptions( options ); // Add my own options.
 
     KComponentData a(&about);
@@ -85,6 +87,7 @@ int main(int argc, char **argv)
     KApplication app(true);
 
     dryrun = args->isSet("dry-run");
+    kde5 = args->isSet("dry-run");
 
     if (args->isSet("watch"))
     {
