@@ -53,4 +53,4 @@ target_link_libraries(kwinshutdown
 )
 
 install(TARGETS kwinshutdown ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-install(PROGRAMS kwinshutdown.desktop DESTINATION ${XDG_APPS_INSTALL_DIR})
+install(FILES kwinshutdown5.desktop DESTINATION ${XDG_APPS_INSTALL_DIR})
